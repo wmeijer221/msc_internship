@@ -10,27 +10,25 @@ xl_file = pd.ExcelFile(DATA_FILE)
 
 df = pd.read_excel(DATA_FILE)
 
-TEST_FOR_REPO_DIFF = True
+TEST_FOR_REPO_DIFF = False
 
 DEFQ = ''
 
 QUERY = DEFQ
 
-prev_repo = ""
+PREV_REPO = ""
 
 for index, row in df.iterrows():
     repo, key = row["issues key"].split("-")
 
-    if TEST_FOR_REPO_DIFF and repo != prev_repo:
-        # print(QUERY[:-3])
-        print(f'{QUERY}')
-        prev_repo = repo
+    if TEST_FOR_REPO_DIFF and repo != PREV_REPO:
+        print(QUERY[3:])
+        PREV_REPO = repo
         QUERY = DEFQ
 
-    QUERY = f'{QUERY} {repo}\-{key}'
-    # QUERY = f'{QUERY} ((SUBJECT LIKE \'%{key}%\' OR  BODY LIKE \'%{key}%\') AND (SUBJECT LIKE \'%{repo}%\' OR BODY LIKE \'%{repo}%\')) OR'
+    QUERY = f'{QUERY} OR ((+subject:\"{repo}\\-{key}\") OR (+body:\"{repo}\\-{key}\") OR (+body:\"{key}\"))'
 
-# print(QUERY[:-3])
-print(f'{QUERY}')
+
+print(QUERY[3:])
 
 xl_file.close()
