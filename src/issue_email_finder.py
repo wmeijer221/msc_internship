@@ -159,13 +159,11 @@ def find(
 
 
 if __name__ == "__main__":
-    ATLAS_PROJECT_PATH = "./data/MSc_Internship-2022.atlproj"  # sys.argv[1]
-    ATLAS_OUTPUT_PATH = "./data/atlas_extract/"  # sys.argv[2]
-    ISSUE_FILE_PATH = "./data/IssuesDatasetArchitectural.xlsx"  # sys.argv[3]
-    LINK_FILE_PATH = "./data/issue-mail-relations/links.json"  # sys.argv[4]
-    READABLE_FILE_OUTPUT_PATH = (
-        "./data/issue-mail-relations/readable-files/"  # sys.argv[5]
-    )
+    ATLAS_PROJECT_PATH = "./data/MSc_Internship-2022.atlproj"
+    ATLAS_OUTPUT_PATH = "./data/atlas_extract/"
+    ISSUE_FILE_PATH = "./data/IssuesDatasetArchitectural.xlsx"
+    LINK_FILE_PATH = "./data/issue-mail-relations/links.json"
+    READABLE_FILE_OUTPUT_PATH = "./data/issue-mail-relations/readable-files/"
 
     find(
         ATLAS_PROJECT_PATH,
