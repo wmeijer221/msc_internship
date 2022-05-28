@@ -1,13 +1,13 @@
 """Calculates simple co-occurrence of tags."""
 
-from cProfile import label
 import json
-from logging import root
 import os
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 import networkx as nx
 import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency
+
 
 
 def load_atlas_as_tree(atlas_project_path: str, atlas_output_path: str) -> ET.Element:
@@ -155,6 +155,28 @@ def calculate_co_occurrence(occurrence: dict) -> dict:
     return co_occurrence
 
 
+def chi_square(co_occurrence: dict):
+    sorted_keys = list(co_occurrence.keys())
+    sorted_keys.sort(key=lambda x: int(x[2:]))
+
+    matrix = [None] * len(sorted_keys)
+    for i, current_key in enumerate(sorted_keys):
+        matrix[i] = [0] * len(sorted_keys)
+        for j, other_key in enumerate(sorted_keys):
+            try:
+                matrix[i][j] = co_occurrence[current_key][other_key]
+            except KeyError:
+                continue # ignored
+
+    stat, p, dof, expected = chi2_contingency(matrix)
+
+    print(stat)
+    print(p < 0.05)
+    print(dof)
+    print(matrix)
+    print(expected)
+
+
 def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element):
     """Draws a co-occurrence network."""
     node_scalar_factor = 2000
@@ -202,18 +224,24 @@ if __name__ == "__main__":
     ATLAS_PROJECT_FILE = "./data/MSc_Internship-2022.atlproj"
     ATLAS_EXTRACT_PATH = "./data/atlas_extract/"
 
+    # loads atlas.ti project as xml.
     atlas_root, atlas_tree = load_atlas_as_tree(ATLAS_PROJECT_FILE, ATLAS_EXTRACT_PATH)
 
+    # loads project tag data.
     proj_tags = load_tags(atlas_root)
     proj_tags = append_tag_data(proj_tags, atlas_root)
-
     proj_tags = append_mail_data(proj_tags, atlas_root, ATLAS_EXTRACT_PATH)
+
+    # Co-occurrence calculations for co-occurrence in individual
+    # mails and complete mailing threads.
     doc_occurrence = calculate_tag_occurrence_using_key(proj_tags, "doc_id")
     doc_co_occurrence = calculate_co_occurrence(doc_occurrence)
+    # doc_chi_results = chi_square(doc_co_occurrence)
 
     mail_occurrence = calculate_tag_occurrence_using_key(proj_tags, "email_id")
     mail_co_occurrence = calculate_co_occurrence(doc_occurrence)
 
+    # Outputs all of the gathered data.
     output = {
         "proj_tags": proj_tags,
         "doc_occurrence": doc_occurrence,
