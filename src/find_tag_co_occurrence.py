@@ -1,10 +1,13 @@
 """Calculates simple co-occurrence of tags."""
 
+from cProfile import label
 import json
+from logging import root
 import os
-import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 def load_atlas_as_tree(atlas_project_path: str, atlas_output_path: str) -> ET.Element:
@@ -152,6 +155,49 @@ def calculate_co_occurrence(occurrence: dict) -> dict:
     return co_occurrence
 
 
+def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element):
+    """Draws a co-occurrence network."""
+    node_scalar_factor = 2000
+    edge_scalar_factor = 5
+
+    graph = nx.Graph()
+    for source, targets in co_occurrence.items():
+        source_id = int(source[2:])
+        for target, weight in targets.items():
+            target_id = int(target[2:])
+
+            if weight == 0:
+                continue
+
+            if source_id == target_id:
+                graph.add_node(source_id, size=weight)
+            else:
+                graph.add_edge(source_id, target_id, weight=weight)
+
+    # loads tags from atlas project
+    tag_id_to_name_map = {
+        int(tag.get("id")[2:]): tag.get("name")
+        for tag in root.find("tags").findall("tag")
+    }
+
+    # drawing custimization
+    plt.figure(1, figsize=(80, 50), dpi=20)
+    pos = nx.spring_layout(graph, k=0.42, iterations=17)
+    nx.draw(
+        graph,
+        pos,
+        # with_labels=True,
+        node_color="#bababa",
+        font_size=46,
+        font_weight="bold",
+        labels={node: tag_id_to_name_map[node] for node in graph.nodes()},
+        node_size=[v * node_scalar_factor for v in graph.nodes()],
+        width=[graph[s][t]["weight"] * edge_scalar_factor for s, t in graph.edges()],
+    )
+    plt.savefig(f"./data/co_occurrence/results-{name}.png")
+    plt.clf()
+
+
 if __name__ == "__main__":
     ATLAS_PROJECT_FILE = "./data/MSc_Internship-2022.atlproj"
     ATLAS_EXTRACT_PATH = "./data/atlas_extract/"
@@ -162,7 +208,6 @@ if __name__ == "__main__":
     proj_tags = append_tag_data(proj_tags, atlas_root)
 
     proj_tags = append_mail_data(proj_tags, atlas_root, ATLAS_EXTRACT_PATH)
-
     doc_occurrence = calculate_tag_occurrence_using_key(proj_tags, "doc_id")
     doc_co_occurrence = calculate_co_occurrence(doc_occurrence)
 
@@ -177,8 +222,10 @@ if __name__ == "__main__":
         "email_co_occurrence": mail_co_occurrence,
     }
 
-    print(json.dumps(output, indent=4))
+    with open(
+        "./data/co_occurrence/results.json", "w", encoding="utf-8"
+    ) as output_file:
+        output_file.write(json.dumps(output, indent=4))
 
-    # plt.imshow(doc_co_occurrence,interpolation='nearest', cmap='Reds')
-    # plt.colorbar()
-    # plt.show()
+    draw_co_occurrence_network(doc_co_occurrence, "doc", atlas_root)
+    draw_co_occurrence_network(mail_co_occurrence, "mail", atlas_root)
