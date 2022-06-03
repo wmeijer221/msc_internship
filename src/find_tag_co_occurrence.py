@@ -1,5 +1,6 @@
 """Calculates simple co-occurrence of tags."""
 
+from dis import show_code
 import json
 import os
 import xml.etree.ElementTree as ET
@@ -7,7 +8,6 @@ from zipfile import ZipFile
 import networkx as nx
 import matplotlib.pyplot as plt
 from scipy.stats import chi2_contingency
-
 
 
 def load_atlas_as_tree(atlas_project_path: str, atlas_output_path: str) -> ET.Element:
@@ -115,6 +115,9 @@ def calculate_tag_occurrence_using_key(tags: dict, key: str) -> dict:
     co_occurrence = {}
 
     for tag_id, tag in tags.items():
+        if "tag_id" not in tag:
+            continue
+
         group = tag[key]
         tag_id = tag["tag_id"]
 
@@ -130,6 +133,21 @@ def calculate_tag_occurrence_using_key(tags: dict, key: str) -> dict:
             target_group[tag_id] = 1
 
     return co_occurrence
+
+
+def filter_ignored(tags: dict, ignored: list) -> dict:
+    """Filters ignored tags out of the co_occurrence dict."""
+    # removes origin tags.
+    for ignored_tag in ignored:
+        if ignored_tag in tags:
+            del tags[ignored_tag]
+    # removes target tags
+    for tag, occurrences in tags.items():
+        for ignored_tag in ignored:
+            if ignored_tag in occurrences:
+                del occurrences[ignored_tag]
+        tags[tag] = occurrences
+    return tags
 
 
 def calculate_co_occurrence(occurrence: dict) -> dict:
@@ -156,6 +174,7 @@ def calculate_co_occurrence(occurrence: dict) -> dict:
 
 
 def chi_square(co_occurrence: dict):
+    """Performs chi square test."""
     sorted_keys = list(co_occurrence.keys())
     sorted_keys.sort(key=lambda x: int(x[2:]))
 
@@ -166,7 +185,7 @@ def chi_square(co_occurrence: dict):
             try:
                 matrix[i][j] = co_occurrence[current_key][other_key]
             except KeyError:
-                continue # ignored
+                continue  # ignored
 
     stat, p, dof, expected = chi2_contingency(matrix)
 
@@ -180,7 +199,7 @@ def chi_square(co_occurrence: dict):
 def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element):
     """Draws a co-occurrence network."""
     node_scalar_factor = 2000
-    edge_scalar_factor = 5
+    edge_scalar_factor = 0.5
 
     graph = nx.Graph()
     for source, targets in co_occurrence.items():
@@ -204,7 +223,7 @@ def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element)
 
     # drawing custimization
     plt.figure(1, figsize=(80, 50), dpi=20)
-    pos = nx.spring_layout(graph, k=0.42, iterations=17)
+    pos = nx.spring_layout(graph, k=0.42, iterations=50)
     nx.draw(
         graph,
         pos,
@@ -220,9 +239,27 @@ def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element)
     plt.clf()
 
 
+def draw_co_occurrence_heatmap(co_occurrence: dict, name: str, root: ET.Element):
+    """Exports data in heatmap format."""
+    # builds matrix data structure from dict.
+    matrix = [[0] * len(co_occurrence) for i in range(len(co_occurrence))]
+    key_to_index = {key: index for index, key in enumerate(co_occurrence.keys())}
+    for key, occurrences in co_occurrence.items():
+        index = key_to_index[key]
+        for other_key, count in occurrences.items():
+            other_index = key_to_index[other_key]
+            matrix[index][other_index] = count
+
+    # exports data.
+    plt.imshow(matrix, cmap='hot', interpolation='nearest')
+    plt.savefig(f"./data/co_occurrence/results-{name}.png")
+    plt.clf()
+
+
 if __name__ == "__main__":
     ATLAS_PROJECT_FILE = "./data/MSc_Internship-2022.atlproj"
     ATLAS_EXTRACT_PATH = "./data/atlas_extract/"
+    IGNORED_TAGS_FILE = "./data/co_occurrence/ignored_tags.txt"
 
     # loads atlas.ti project as xml.
     atlas_root, atlas_tree = load_atlas_as_tree(ATLAS_PROJECT_FILE, ATLAS_EXTRACT_PATH)
@@ -234,11 +271,16 @@ if __name__ == "__main__":
 
     # Co-occurrence calculations for co-occurrence in individual
     # mails and complete mailing threads.
+    with open(IGNORED_TAGS_FILE, "r", encoding="utf-8") as ignored_tags_file:
+        ignored_tags = [tag.strip() for tag in ignored_tags_file.readlines()]
+
     doc_occurrence = calculate_tag_occurrence_using_key(proj_tags, "doc_id")
+    doc_occurrence = filter_ignored(doc_occurrence, ignored_tags)
     doc_co_occurrence = calculate_co_occurrence(doc_occurrence)
     # doc_chi_results = chi_square(doc_co_occurrence)
 
     mail_occurrence = calculate_tag_occurrence_using_key(proj_tags, "email_id")
+    mail_occurrence = filter_ignored(mail_occurrence, ignored_tags)
     mail_co_occurrence = calculate_co_occurrence(doc_occurrence)
 
     # Outputs all of the gathered data.
@@ -255,5 +297,8 @@ if __name__ == "__main__":
     ) as output_file:
         output_file.write(json.dumps(output, indent=4))
 
-    draw_co_occurrence_network(doc_co_occurrence, "doc", atlas_root)
-    draw_co_occurrence_network(mail_co_occurrence, "mail", atlas_root)
+    draw_co_occurrence_network(doc_co_occurrence, "doc-graph", atlas_root)
+    draw_co_occurrence_network(mail_co_occurrence, "mail-graph", atlas_root)
+
+    draw_co_occurrence_heatmap(doc_co_occurrence, "doc-heatmap", atlas_root)
+    draw_co_occurrence_heatmap(mail_co_occurrence, "mail-heatmap", atlas_root)
