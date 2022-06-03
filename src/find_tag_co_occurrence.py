@@ -1,6 +1,5 @@
 """Calculates simple co-occurrence of tags."""
 
-from dis import show_code
 import json
 import os
 import xml.etree.ElementTree as ET
@@ -196,7 +195,9 @@ def chi_square(co_occurrence: dict):
     print(expected)
 
 
-def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element):
+def draw_co_occurrence_network(
+    co_occurrence: dict, name: str, root: ET.Element, results_path: str
+):
     """Draws a co-occurrence network."""
     node_scalar_factor = 2000
     edge_scalar_factor = 0.5
@@ -235,11 +236,13 @@ def draw_co_occurrence_network(co_occurrence: dict, name: str, root: ET.Element)
         node_size=[v * node_scalar_factor for v in graph.nodes()],
         width=[graph[s][t]["weight"] * edge_scalar_factor for s, t in graph.edges()],
     )
-    plt.savefig(f"./data/co_occurrence/results-{name}.png")
+    plt.savefig(f"{results_path}/results-{name}.png")
     plt.clf()
 
 
-def draw_co_occurrence_heatmap(co_occurrence: dict, name: str, root: ET.Element):
+def draw_co_occurrence_heatmap(
+    co_occurrence: dict, name: str, root: ET.Element, results_path: str
+):
     """Exports data in heatmap format."""
     # builds matrix data structure from dict.
     matrix = [[0] * len(co_occurrence) for i in range(len(co_occurrence))]
@@ -251,54 +254,73 @@ def draw_co_occurrence_heatmap(co_occurrence: dict, name: str, root: ET.Element)
             matrix[index][other_index] = count
 
     # exports data.
-    plt.imshow(matrix, cmap='hot', interpolation='nearest')
-    plt.savefig(f"./data/co_occurrence/results-{name}.png")
+    plt.imshow(matrix, cmap="hot", interpolation="nearest")
+    plt.savefig(f"{results_path}/results-{name}.png")
     plt.clf()
+
+
+def find_tag_co_occurrence(
+    atlas_project_file: str,
+    atlas_extract_path: str,
+    ignored_tags_file: str,
+    results_path: str,
+):
+    # loads atlas.ti project as xml.
+    atlas_root, _ = load_atlas_as_tree(atlas_project_file, atlas_extract_path)
+
+    # loads project tag data.
+    proj_tags = load_tags(atlas_root)
+    proj_tags = append_tag_data(proj_tags, atlas_root)
+    proj_tags = append_mail_data(proj_tags, atlas_root, atlas_extract_path)
+
+    # Co-occurrence calculations for co-occurrence in individual
+    # mails and complete mailing threads.
+    with open(ignored_tags_file, "r", encoding="utf-8") as input_file:
+        ignored_tags = [tag.strip() for tag in input_file.readlines()]
+
+    thread_occurrence = calculate_tag_occurrence_using_key(proj_tags, "doc_id")
+    thread_occurrence = filter_ignored(thread_occurrence, ignored_tags)
+    thread_co_occurrence = calculate_co_occurrence(thread_occurrence)
+    # doc_chi_results = chi_square(doc_co_occurrence)
+
+    mail_occurrence = calculate_tag_occurrence_using_key(proj_tags, "email_id")
+    mail_occurrence = filter_ignored(mail_occurrence, ignored_tags)
+    mail_co_occurrence = calculate_co_occurrence(thread_occurrence)
+
+    # Outputs all of the gathered data.
+    output = {
+        "proj_tags": proj_tags,
+        "ignored_tags": ignored_tags,
+        "thread_occurrence": thread_occurrence,
+        "thead_co_occurrence": thread_co_occurrence,
+        "email_occurrence": mail_occurrence,
+        "email_co_occurrence": mail_co_occurrence,
+    }
+
+    with open(f"{results_path}/results.json", "w", encoding="utf-8") as output_file:
+        output_file.write(json.dumps(output, indent=4))
+
+    draw_co_occurrence_network(
+        thread_co_occurrence, "thread-graph", atlas_root, results_path
+    )
+    draw_co_occurrence_network(
+        mail_co_occurrence, "mail-graph", atlas_root, results_path
+    )
+
+    draw_co_occurrence_heatmap(
+        thread_co_occurrence, "thread-heatmap", atlas_root, results_path
+    )
+    draw_co_occurrence_heatmap(
+        mail_co_occurrence, "mail-heatmap", atlas_root, results_path
+    )
 
 
 if __name__ == "__main__":
     ATLAS_PROJECT_FILE = "./data/MSc_Internship-2022.atlproj"
     ATLAS_EXTRACT_PATH = "./data/atlas_extract/"
-    IGNORED_TAGS_FILE = "./data/co_occurrence/ignored_tags.txt"
+    RESULTS_PATH = "./data/co_occurrence"
+    IGNORED_TAGS_FILE = f"{RESULTS_PATH}/ignored_tags.txt"
 
-    # loads atlas.ti project as xml.
-    atlas_root, atlas_tree = load_atlas_as_tree(ATLAS_PROJECT_FILE, ATLAS_EXTRACT_PATH)
-
-    # loads project tag data.
-    proj_tags = load_tags(atlas_root)
-    proj_tags = append_tag_data(proj_tags, atlas_root)
-    proj_tags = append_mail_data(proj_tags, atlas_root, ATLAS_EXTRACT_PATH)
-
-    # Co-occurrence calculations for co-occurrence in individual
-    # mails and complete mailing threads.
-    with open(IGNORED_TAGS_FILE, "r", encoding="utf-8") as ignored_tags_file:
-        ignored_tags = [tag.strip() for tag in ignored_tags_file.readlines()]
-
-    doc_occurrence = calculate_tag_occurrence_using_key(proj_tags, "doc_id")
-    doc_occurrence = filter_ignored(doc_occurrence, ignored_tags)
-    doc_co_occurrence = calculate_co_occurrence(doc_occurrence)
-    # doc_chi_results = chi_square(doc_co_occurrence)
-
-    mail_occurrence = calculate_tag_occurrence_using_key(proj_tags, "email_id")
-    mail_occurrence = filter_ignored(mail_occurrence, ignored_tags)
-    mail_co_occurrence = calculate_co_occurrence(doc_occurrence)
-
-    # Outputs all of the gathered data.
-    output = {
-        "proj_tags": proj_tags,
-        "doc_occurrence": doc_occurrence,
-        "doc_co_occurrence": doc_co_occurrence,
-        "email_occurrence": mail_occurrence,
-        "email_co_occurrence": mail_co_occurrence,
-    }
-
-    with open(
-        "./data/co_occurrence/results.json", "w", encoding="utf-8"
-    ) as output_file:
-        output_file.write(json.dumps(output, indent=4))
-
-    draw_co_occurrence_network(doc_co_occurrence, "doc-graph", atlas_root)
-    draw_co_occurrence_network(mail_co_occurrence, "mail-graph", atlas_root)
-
-    draw_co_occurrence_heatmap(doc_co_occurrence, "doc-heatmap", atlas_root)
-    draw_co_occurrence_heatmap(mail_co_occurrence, "mail-heatmap", atlas_root)
+    find_tag_co_occurrence(
+        ATLAS_PROJECT_FILE, ATLAS_EXTRACT_PATH, IGNORED_TAGS_FILE, RESULTS_PATH
+    )
