@@ -259,12 +259,47 @@ def draw_co_occurrence_heatmap(
     plt.clf()
 
 
+def export_to_csv(co_occurrence: dict, name: str, output_path: str, root: ET.Element):
+    # builds matrix data structure.
+    matrix = [[0] * len(co_occurrence) for i in range(len(co_occurrence))]
+    key_to_index = {key: index for index, key in enumerate(co_occurrence.keys())}
+    for key, occurrences in co_occurrence.items():
+        index = key_to_index[key]
+        for other_key, count in occurrences.items():
+            other_index = key_to_index[other_key]
+            matrix[index][other_index] = count
+
+    # Loads tags
+    index_to_key = {
+        key_to_index[tag.get("id")]: tag.get("name")
+        for tag in root.find("tags").findall("tag")
+        if tag.get("id") in key_to_index
+    }
+
+    with open(
+        f"{output_path}/{name}-results.csv", "w", encoding="utf-8"
+    ) as output_file:
+        output_file.write(
+            f"Co-Occurrence Matrix: {name}, {str([index_to_key[i] for i in range(len(matrix))])[1:-1]}\n"
+        )
+        for index, row in enumerate(matrix):
+            output_file.write(f"{index_to_key[index]}, {str(row)[1:-1]}\n")
+
+
+def export_results(co_occurrence: dict, name: str, output_path: str, root: ET.Element):
+    """exports results."""
+    export_to_csv(co_occurrence, f"{name}-co-occurrence", output_path, root)
+    draw_co_occurrence_network(co_occurrence, f"{name}-graph", root, output_path)
+    draw_co_occurrence_heatmap(co_occurrence, f"{name}-heatmap", root, output_path)
+
+
 def find_tag_co_occurrence(
     atlas_project_file: str,
     atlas_extract_path: str,
     ignored_tags_file: str,
     results_path: str,
 ):
+    """Finds co-occurrence and exports respective files."""
     # loads atlas.ti project as xml.
     atlas_root, _ = load_atlas_as_tree(atlas_project_file, atlas_extract_path)
 
@@ -281,11 +316,13 @@ def find_tag_co_occurrence(
     thread_occurrence = calculate_tag_occurrence_using_key(proj_tags, "doc_id")
     thread_occurrence = filter_ignored(thread_occurrence, ignored_tags)
     thread_co_occurrence = calculate_co_occurrence(thread_occurrence)
+    export_results(thread_co_occurrence, "thread", results_path, atlas_root)
     # doc_chi_results = chi_square(doc_co_occurrence)
 
     mail_occurrence = calculate_tag_occurrence_using_key(proj_tags, "email_id")
     mail_occurrence = filter_ignored(mail_occurrence, ignored_tags)
     mail_co_occurrence = calculate_co_occurrence(thread_occurrence)
+    export_results(mail_co_occurrence, "mail", results_path, atlas_root)
 
     # Outputs all of the gathered data.
     output = {
@@ -299,20 +336,6 @@ def find_tag_co_occurrence(
 
     with open(f"{results_path}/results.json", "w", encoding="utf-8") as output_file:
         output_file.write(json.dumps(output, indent=4))
-
-    draw_co_occurrence_network(
-        thread_co_occurrence, "thread-graph", atlas_root, results_path
-    )
-    draw_co_occurrence_network(
-        mail_co_occurrence, "mail-graph", atlas_root, results_path
-    )
-
-    draw_co_occurrence_heatmap(
-        thread_co_occurrence, "thread-heatmap", atlas_root, results_path
-    )
-    draw_co_occurrence_heatmap(
-        mail_co_occurrence, "mail-heatmap", atlas_root, results_path
-    )
 
 
 if __name__ == "__main__":
