@@ -18,8 +18,8 @@ def find_issues_in(iss: list, file_path: str) -> dict:
         for index, line in enumerate(data_file):
             print(f'{index=}')
             for issue in iss:
-                index = line.find(issue)
-                if index != -1:
+                line_offset = line.find(issue)
+                if line_offset != -1:
                     res = (line, index)
                     found += 1
                     if issue in results:
