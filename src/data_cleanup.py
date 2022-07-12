@@ -70,11 +70,16 @@ def export(results, tags, output_file):
 DATA_PATH = "./data/cleaner_data/AKEmails.csv"
 OUTPUT_PATH = "./data/cleaner_data/AKEmails-export.csv"
 INTERESTING_TAGS = [
-    "existence-behavioral",
-    "existence-structural",
-    "process",
-    "property",
-    "technology",
+    "Architecturally Irrelevant",
+    "Description Reference",
+    "Discussion on Issue",
+    "FQAB Group",
+    "Influence of Architectural Issues",
+    "Information Source",
+    "Issue Elaboration",
+    "Issue Relationship",
+    "Other Reference",
+    "Release Group",
 ]
 
 
