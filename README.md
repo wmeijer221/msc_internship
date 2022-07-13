@@ -13,9 +13,7 @@ There are a bunch of scripts in this projects; some work, some don't, some are o
 Here's a summary of the relevant ones, per study that they're used for. 
 
 ### Decision Rationale
-- ``better_parse_atlas_to_csv.py`` - parses a web atlas project to a CSV file, preserving the email decision types, the thread info, and mail subject, as well as, the quotes and classes attached to that.
-- ``data_cleanup.py`` - uses the csv export of the email browser, and merges classifications of all emails to a thread. Mostly a utility script.
-- ``data_cleanup2.py`` - reformats the csv export of the email browser.
+- ``the_best_parse_atlas_to_csv.py`` - parses a web atlas project to a CSV file, preserving the email decision types, the thread info, and mail subject, as well as, the quotes and classes attached to that. exports two files, a per email view showing what emails have what kruchten types + rationale types, and an overview of all quotations where they are located and their rationale types. 
 
 ### Issue-Email Relationships
 - ``better_find_issues_in_text.py`` - takes the txt export of the data browser and a xlsx file of architectural issues, searches for all issue references in the emails and outputs them in a json file. 

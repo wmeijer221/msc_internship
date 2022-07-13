@@ -74,6 +74,7 @@ def load_all_quotes(root: Element) -> dict:
 a_quotes = load_all_quotes(a_root)
 
 def generate_data(root: Element) -> list:
+    all_emails = []
     #   2) load all document content guids
     cnt_to_doc = {cnt.get("id"): cnt.get("loc") for cnt in a_root.find("contents").findall("content")}
 
@@ -127,6 +128,14 @@ def generate_data(root: Element) -> list:
             elif email_tags_flag:
                 email_tags_flag = False
                 current_email_tags = text
+                print(current_quote["thread"], current_email_id, text)
+                all_emails.append({
+                    "email_thread": current_quote["thread"],
+                    "email_id": current_email_id,
+                    "email_subject": current_email_subject,
+                    "email_tags": current_email_tags,
+                    "quote_tags": current_quote["tags"],
+                })
                 continue
         #           ii: if the element-id + 1 equals the quote segment start, then:
             current_quote = quotes[current_quote_index]
@@ -149,9 +158,9 @@ def generate_data(root: Element) -> list:
                 current_quote = quotes[current_quote_index]
             if current_quote_index >= len(quotes):
                 break
-    return data_entries
+    return data_entries, all_emails
 
-my_results = generate_data(a_root)
+my_results, analyzed_emails = generate_data(a_root)
 print(f'{len(my_results)=}')
 
 #   4) export all data entries
@@ -163,7 +172,7 @@ INTERESTING_TAGS = [
     "property",
     "technology",
 ]
-def export_data(results: list, root: Element):
+def export_quotes(results: list, root: Element):
     with open(OUTPUT_PATH, "w", encoding="utf-8") as output_file:
         output_file.write("thread,email_id,email_subject,")
         for tag in INTERESTING_TAGS:
@@ -194,4 +203,32 @@ def export_data(results: list, root: Element):
                     output_file.write("0,")
             output_file.write("\n")
 
-export_data(my_results, a_root)
+export_quotes(my_results, a_root)
+
+
+def export_analyzed_emails(emails: list, output_path: str, tags: str):
+    with open(output_path, "w", encoding="utf-8") as output_file:
+        output_file.write("email_id,email_subject,")
+        for tag in tags:
+            output_file.write(f"{tag},")
+        output_file.write("\n")
+        for entry in emails:
+            entry_tags = [e for e in entry["email_tags"].strip().split(",") if e in tags]
+            if len(entry_tags) == 0:
+                continue
+            entry_id = entry["email_id"]
+            entry_subject = entry["email_subject"]
+            output_file.write(f'{entry_id},\"{entry_subject}\",')
+            for tag in tags:
+                if tag in entry_tags:
+                    output_file.write("1,")
+                else:
+                    output_file.write("0,")
+            output_file.write("\n")
+
+
+
+OUTPUT_PATH2 = "./data/atlas_to_csv/export2.csv"
+export_analyzed_emails(analyzed_emails, OUTPUT_PATH2, INTERESTING_TAGS)
+
+
