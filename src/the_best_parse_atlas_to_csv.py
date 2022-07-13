@@ -1,3 +1,13 @@
+"""
+Transforms a web atlas project to .csv format. 
+Two files are exported on two granularity levels: 
+- quotes:   containing the atlas quotation and its rationale types, 
+            as well, as the id and subject of the containing email. 
+- email:    containing the decision types as well as the rationale 
+            types of all quotes included inside said mail, as well 
+            as the id and subject of the discussed mail.
+"""
+
 import os
 from zipfile import ZipFile
 import xml.etree.ElementTree as ET
@@ -15,13 +25,9 @@ def load_atlas_as_tree(atlas_project_path: str, atlas_output_path: str) -> ET.El
     return root
 
 
-ATLAS_PATH_IN = "./data/the_best_exported_data/ds.atlproj"
-ATLAS_PATH_OUT = "./data/the_best_exported_data/extract/"
-a_root = load_atlas_as_tree(ATLAS_PATH_IN, ATLAS_PATH_OUT)
-
-
 # Load all quotes
 def load_all_quotes(root: Element) -> dict:
+    """Loads all quotes contained in the atlas project."""
     quotes = {}
     tags = {tg.get("id"): tg.get("name") for tg in root.find("tags").findall("tag")}
     quote_tags = {}
@@ -60,14 +66,12 @@ def load_all_quotes(root: Element) -> dict:
     return quotes
 
 
-a_quotes: dict = load_all_quotes(a_root)
-
-
 # generate data
 def generate_data(root: Element, quotes: dict) -> list:
+    """Generates data to export acquired from the atlas project."""
     cnt_to_doc = {
         cnt.get("id"): cnt.get("loc")
-        for cnt in a_root.find("contents").findall("content")
+        for cnt in root.find("contents").findall("content")
     }
     tags_per_email: dict[str, list] = {doc_id: [] for doc_id in quotes.keys()}
     tags_per_quote = {doc_id: [] for doc_id in quotes.keys()}
@@ -153,10 +157,8 @@ def generate_data(root: Element, quotes: dict) -> list:
     return tags_per_email, tags_per_quote
 
 
-tpe, tpq = generate_data(a_root, a_quotes)
-
-
 def export_tpe(entries: dict, output_path: str, type_tags: list, rat_tags: list):
+    """exports the email .csv"""
     with open(output_path, "w+", encoding="utf-8") as output_file:
         # header
         output_file.write("document,email_id,email_subject,")
@@ -181,6 +183,7 @@ def export_tpe(entries: dict, output_path: str, type_tags: list, rat_tags: list)
 
 
 def export_tpq(entries: dict, output_path: str, rat_tags: list):
+    """exports the quote .csv"""
     with open(output_path, "w+", encoding="utf-8") as output_file:
         # header
         output_file.write("document,email_id,email_subject,quote,")
@@ -200,9 +203,26 @@ def export_tpq(entries: dict, output_path: str, rat_tags: list):
                 output_file.write("\n")
 
 
+def parse(
+    atlas_path_in: str,
+    atlas_path_out: str,
+    output_path1: str,
+    output_path2: str,
+    dec_types: list,
+    rat_types: list,
+):
+    """Parses the atlas project to the two datafiles."""
+    a_root = load_atlas_as_tree(atlas_path_in, atlas_path_out)
+    a_quotes: dict = load_all_quotes(a_root)
+    tpe, tpq = generate_data(a_root, a_quotes)
+    export_tpe(tpe, output_path1, dec_types, rat_types)
+    export_tpq(tpq, output_path2, rat_types)
+
+
+ATLAS_PATH_IN = "./data/the_best_exported_data/ds.atlproj"
+ATLAS_PATH_OUT = "./data/the_best_exported_data/extract/"
 OUTPUT_PATH = "./data/the_best_exported_data/export_emails.csv"
 OUTPUT_PATH2 = "./data/the_best_exported_data/export_quotes.csv"
-
 DEC_TYPES = [
     "existence-behavioral",
     "existence-structural",
@@ -223,5 +243,7 @@ RAT_TYPES = [
     "Other",
 ]
 
-export_tpe(tpe, OUTPUT_PATH, DEC_TYPES, RAT_TYPES)
-export_tpq(tpq, OUTPUT_PATH2, RAT_TYPES)
+if __name__ == "__main__":
+    parse(
+        ATLAS_PATH_IN, ATLAS_PATH_OUT, OUTPUT_PATH, OUTPUT_PATH2, DEC_TYPES, RAT_TYPES
+    )
