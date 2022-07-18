@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
 from copy import deepcopy
 import itertools
+import re
 
 
 def load_atlas_as_tree(atlas_project_path: str, atlas_output_path: str) -> ET.Element:
@@ -44,6 +45,10 @@ def load_all_quotes(root: Element) -> dict:
         quotes[doc_id] = []
         for qt in doc.find("layer").findall("quotation"):
             try:
+                comment_obj = qt.find("comment")
+                comment_id = (
+                    comment_obj.get("content") if comment_obj is not None else None
+                )
                 tloc = qt.find("location").find("segmentedTextLoc")
                 qt_entry = {
                     "thread": doc.get("name"),
@@ -54,6 +59,7 @@ def load_all_quotes(root: Element) -> dict:
                     "eOffset": int(tloc.get("eOffset")),
                     #           - and apply the results from a and b on it.
                     "tags": quote_tags[qt.get("id")],
+                    "comment_content_id": comment_id,
                 }
                 quotes[doc_id].append(qt_entry)
                 if qt_entry["sSegment"] != qt_entry["eSegment"]:
@@ -78,6 +84,7 @@ def generate_data(root: Element, quotes: dict) -> list:
     for doc_id, quotes in quotes.items():
         # Open respective HTML document with XML parser.
         doc_loc = cnt_to_doc[f"cnt_{doc_id[4:]}"]
+        print(f"{doc_loc=}")
         doc_file = f"{ATLAS_PATH_OUT}contents/{doc_loc}/content"
         parser = ET.XMLParser()
         parser.entity["nbsp"] = " "
@@ -138,14 +145,21 @@ def generate_data(root: Element, quotes: dict) -> list:
                 # updates current email
                 current_email["rationale_tags"].update(quote_tags)
                 # exports quotation.
-                tags_per_quote[doc_id].append(
-                    {
-                        "quote": quotation,
-                        "tags": quote_tags,
-                        "email_id": current_email["id"],
-                        "email_subject": current_email["subject"],
-                    }
-                )
+                new_entry = {
+                    "quote": quotation,
+                    "tags": quote_tags,
+                    "email_id": current_email["id"],
+                    "email_subject": current_email["subject"],
+                    "comment": "",
+                }
+
+                # load respective comment
+                comment_id = current_quote["comment_content_id"]
+                if comment_id is not None:
+                    new_entry["comment"] = load_comment(cnt_to_doc, comment_id)
+
+                # Adds it to the list
+                tags_per_quote[doc_id].append(new_entry)
                 quote_index += 1
                 if quote_index < len(quotes):
                     current_quote = quotes[quote_index]
@@ -157,23 +171,46 @@ def generate_data(root: Element, quotes: dict) -> list:
     return tags_per_email, tags_per_quote
 
 
+def load_comment(cnt_to_doc: dict, comment_content_id: str) -> str:
+    """Loads the text stored in te atlasti comment."""
+    comment_loc = cnt_to_doc[comment_content_id]
+    print(f"{comment_loc=}")
+    comment_file = f"{ATLAS_PATH_OUT}contents/{comment_loc}/content"
+    with open(comment_file, "r", encoding="utf-8") as comment_data:
+        old_data = comment_data.read()
+        new_data = ""
+        prev_span_end = 0
+        for f in re.finditer(r"<br id=\".\">", old_data):
+            span = f.span()
+            delta = span[1] - span[0]
+            new_data = f'{new_data}{old_data[prev_span_end:span[0]]}{" " * delta}'
+            prev_span_end = span[1]
+        new_data = f"{new_data}{old_data[prev_span_end:]}"
+    with open(comment_file, "w", encoding="utf-8") as output_file:
+        output_file.write(new_data)
+    comment_root = ET.parse(comment_file).getroot()
+    comment_text = ""
+    for line in comment_root.find("body").find("p").findall("span"):
+        comment_text = f"{comment_text}\n{line.text}"
+    return comment_text
+
+
 def export_tpe(entries: dict, output_path: str, type_tags: list, rat_tags: list):
     """exports the email .csv"""
     with open(output_path, "w+", encoding="utf-8") as output_file:
         # header
         output_file.write("document,email_id,email_subject,")
         for tag in itertools.chain(type_tags, rat_tags):
-            output_file.write(f"{tag},")
+            output_file.write(f"\"{tag}\",")
         output_file.write("\n")
         # data entries
         for doc_id, entries in entries.items():
             for entry in entries:
                 # email meta data
                 email_id = entry["id"]
-                email_subject = entry["subject"]
+                email_subject = entry["subject"].replace('"', "'")
                 output_file.write(f'{doc_id},{email_id},"{email_subject}",')
                 # Decision type tags.
-                print(entry["type_tags"])
                 for tag in type_tags:
                     output_file.write("1," if tag in entry["type_tags"] else "0,")
                 # rationale types
@@ -186,9 +223,9 @@ def export_tpq(entries: dict, output_path: str, rat_tags: list):
     """exports the quote .csv"""
     with open(output_path, "w+", encoding="utf-8") as output_file:
         # header
-        output_file.write("document,email_id,email_subject,quote,")
+        output_file.write("document,email_id,email_subject,quote,comment,")
         for tag in rat_tags:
-            output_file.write(f"{tag},")
+            output_file.write(f"\"{tag}\",")
         output_file.write("\n")
         # entries
 
@@ -196,8 +233,11 @@ def export_tpq(entries: dict, output_path: str, rat_tags: list):
             for entry in entries:
                 email_id = entry["email_id"]
                 email_subject = entry["email_subject"]
-                quote = entry["quote"]
-                output_file.write(f'{doc_id},{email_id},"{email_subject}","{quote}",')
+                quote = entry["quote"].replace('"', "'")
+                comment = entry["comment"].replace('"', "'")
+                output_file.write(
+                    f'{doc_id},{email_id},"{email_subject}","{quote}","{comment}",'
+                )
                 for tag in rat_tags:
                     output_file.write("1," if tag in entry["tags"] else "0,")
                 output_file.write("\n")
