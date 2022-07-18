@@ -12,7 +12,7 @@ df = pd.read_excel(DATA_FILE)
 
 TEST_FOR_REPO_DIFF = False
 
-DEFQ = ''
+DEFQ = ""
 
 QUERY = DEFQ
 
@@ -26,7 +26,7 @@ for index, row in df.iterrows():
         PREV_REPO = repo
         QUERY = DEFQ
 
-    QUERY = f'{QUERY} OR ((+subject:\"{repo}\\-{key}\") OR (+body:\"{repo}\\-{key}\") OR (+body:\"{key}\"))'
+    QUERY = f'{QUERY} OR ((+subject:"{repo}\\-{key}") OR (+body:"{repo}\\-{key}") OR (+body:"{key}"))'
 
 
 print(QUERY[3:])

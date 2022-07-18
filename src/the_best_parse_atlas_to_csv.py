@@ -201,7 +201,7 @@ def export_tpe(entries: dict, output_path: str, type_tags: list, rat_tags: list)
         # header
         output_file.write("document,email_id,email_subject,")
         for tag in itertools.chain(type_tags, rat_tags):
-            output_file.write(f"\"{tag}\",")
+            output_file.write(f'"{tag}",')
         output_file.write("\n")
         # data entries
         for doc_id, entries in entries.items():
@@ -225,7 +225,7 @@ def export_tpq(entries: dict, output_path: str, rat_tags: list):
         # header
         output_file.write("document,email_id,email_subject,quote,comment,")
         for tag in rat_tags:
-            output_file.write(f"\"{tag}\",")
+            output_file.write(f'"{tag}",')
         output_file.write("\n")
         # entries
 

@@ -1,5 +1,4 @@
 import csv
-import json
 
 
 def load_dataset(data_path: str, interesting_tags: list) -> list:
@@ -26,7 +25,7 @@ def reformat(data_set: list, interesting_tags: list, output_path: str):
         output_file.write("\n")
         # Content
         for row in data_set:
-            output_file.write(f'{row["id"]},\"{row["subject"]}\",')
+            output_file.write(f'{row["id"]},"{row["subject"]}",')
             tgs = row["tags"]
             for tag in interesting_tags:
                 if tag in tgs:

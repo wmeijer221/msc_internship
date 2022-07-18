@@ -19,6 +19,7 @@ Here's a summary of the relevant ones, per study that they're used for.
 - ``better_find_issues_in_text.py`` - takes the txt export of the data browser and a xlsx file of architectural issues, searches for all issue references in the emails and outputs them in a json file. 
 - ``restructure_found_issues.py`` - takes the result of ``better_find_issues_in_text.py`` and restructures them. This is useful while classifying using the email browser whilst keeping track of what issues are referenced in what emails (some emails reference multiple issues and not all of them are architectural).
 - ``results_figure_prepper.py`` - takes the csv output of the email browser and restructures it to be better usable for the results. Used by the issue-email relationship study.
+- ``generate_query.py`` - generates lucene query that can be used to find all issues in the email dataset. 
 
 
 
