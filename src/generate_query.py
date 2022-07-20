@@ -26,8 +26,8 @@ for index, row in df.iterrows():
         PREV_REPO = repo
         QUERY = DEFQ
 
-    QUERY = f'{QUERY} OR ((+subject:"{repo}\\-{key}") OR (+body:"{repo}\\-{key}") OR (+body:"{key}"))'
-
+    # QUERY = f'{QUERY} OR ((+subject:"{repo}\\-{key}") OR (+body:"{repo}\\-{key}") OR (+body:"{key}"))'
+    QUERY = f'{QUERY} {key}'
 
 print(QUERY[3:])
 

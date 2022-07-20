@@ -84,7 +84,7 @@ def generate_data(root: Element, quotes: dict) -> list:
     for doc_id, quotes in quotes.items():
         # Open respective HTML document with XML parser.
         doc_loc = cnt_to_doc[f"cnt_{doc_id[4:]}"]
-        print(f"{doc_loc=}")
+        # print(f"{doc_loc=}")
         doc_file = f"{ATLAS_PATH_OUT}contents/{doc_loc}/content"
         parser = ET.XMLParser()
         parser.entity["nbsp"] = " "
@@ -142,15 +142,18 @@ def generate_data(root: Element, quotes: dict) -> list:
             while eid == current_quote["sSegment"]:
                 quotation = text[current_quote["sOffset"] : current_quote["eOffset"]]
                 quote_tags = current_quote["tags"]
+                quote_id = current_quote["id"]
                 # updates current email
                 current_email["rationale_tags"].update(quote_tags)
                 # exports quotation.
                 new_entry = {
+                    "quote_id": quote_id,
                     "quote": quotation,
                     "tags": quote_tags,
                     "email_id": current_email["id"],
                     "email_subject": current_email["subject"],
                     "comment": "",
+                    "email_tags": deepcopy(current_email["type_tags"]),
                 }
 
                 # load respective comment
@@ -174,7 +177,7 @@ def generate_data(root: Element, quotes: dict) -> list:
 def load_comment(cnt_to_doc: dict, comment_content_id: str) -> str:
     """Loads the text stored in te atlasti comment."""
     comment_loc = cnt_to_doc[comment_content_id]
-    print(f"{comment_loc=}")
+    # print(f"{comment_loc=}")
     comment_file = f"{ATLAS_PATH_OUT}contents/{comment_loc}/content"
     with open(comment_file, "r", encoding="utf-8") as comment_data:
         old_data = comment_data.read()
@@ -219,12 +222,12 @@ def export_tpe(entries: dict, output_path: str, type_tags: list, rat_tags: list)
                 output_file.write("\n")
 
 
-def export_tpq(entries: dict, output_path: str, rat_tags: list):
+def export_tpq(entries: dict, output_path: str, rat_tags: list, dec_tags: list):
     """exports the quote .csv"""
     with open(output_path, "w+", encoding="utf-8") as output_file:
         # header
-        output_file.write("document,email_id,email_subject,quote,comment,")
-        for tag in rat_tags:
+        output_file.write("document,email_id,email_subject,quote_id,quote,comment,")
+        for tag in itertools.chain(dec_tags, rat_tags):
             output_file.write(f'"{tag}",')
         output_file.write("\n")
         # entries
@@ -233,11 +236,16 @@ def export_tpq(entries: dict, output_path: str, rat_tags: list):
             for entry in entries:
                 email_id = entry["email_id"]
                 email_subject = entry["email_subject"]
+                quote_id = entry["quote_id"]
                 quote = entry["quote"].replace('"', "'")
                 comment = entry["comment"].replace('"', "'")
                 output_file.write(
-                    f'{doc_id},{email_id},"{email_subject}","{quote}","{comment}",'
+                    f'{doc_id},{email_id},"{email_subject}",{quote_id},"{quote}","{comment}",'
                 )
+                # rationale
+                for tag in dec_tags:
+                    output_file.write("1," if tag in entry["email_tags"] else "0,")
+                # decision
                 for tag in rat_tags:
                     output_file.write("1," if tag in entry["tags"] else "0,")
                 output_file.write("\n")
@@ -256,7 +264,7 @@ def parse(
     a_quotes: dict = load_all_quotes(a_root)
     tpe, tpq = generate_data(a_root, a_quotes)
     export_tpe(tpe, output_path1, dec_types, rat_types)
-    export_tpq(tpq, output_path2, rat_types)
+    export_tpq(tpq, output_path2, rat_types, dec_types)
 
 
 ATLAS_PATH_IN = "./data/the_best_exported_data/ds.atlproj"
@@ -274,7 +282,7 @@ RAT_TYPES = [
     "Assumption",
     "Constraints",
     "Decision Rule",
-    "Domain Experience",
+    "Quality Issue",
     "Solution Benefits and Drawbacks",
     "Solution Evaluation",
     "Solution Risks and Non-Risks",

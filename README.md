@@ -21,6 +21,9 @@ Here's a summary of the relevant ones, per study that they're used for.
 - ``results_figure_prepper.py`` - takes the csv output of the email browser and restructures it to be better usable for the results. Used by the issue-email relationship study.
 - ``generate_query.py`` - generates lucene query that can be used to find all issues in the email dataset. 
 
+### Both
+- ``test_independence.py`` - performs the chi2 test and the fisher exact test on the provided data and outputs the results. This is used to identify co-occurrence of objects.
+
 
 
 
