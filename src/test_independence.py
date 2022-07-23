@@ -57,6 +57,7 @@ def export(results: list, output_path: str):
 
 
 if __name__ == "__main__":
+    
     DATA_PATH = "./data/the_best_exported_data/export_emails.csv"
     DATA_PATH2 = "./data/the_best_exported_data/export_quotes.csv"
 
@@ -76,3 +77,10 @@ if __name__ == "__main__":
 
     # Rationale vs Rationale per quote
     export(calculate(DATA_PATH2, range(11, 20), range(11, 20)), OUTPUT_PATH4)
+
+    # REL_DATA_PATH = "./data/the_best_exported_data/the_data.csv"
+    # REL_DATA_OUT = "./data/the_best_exported_data/rel_vs_rel.csv"
+    # REL_DATA_OUT2 = "./data/the_best_exported_data/dec_vs_rel_email.csv"
+    # REL_DATA_OUT3 = "./data/the_best_exported_data/dec_vs_rel_issue.csv"
+
+    # export(calculate(REL_DATA_PATH, range(2, 12), range(2, 12)), REL_DATA_OUT)

@@ -1,14 +1,14 @@
 """
-restructures the output of ``better_find_issues_in_text.py`` 
+restructures the output of ``better_find_issues_in_text.py``
 to have emails is primary entities instead of issue keys.
 """
 
 from copy import deepcopy
 import json
 
-with open(
-    "./data/find_issues_in_text/the_output.json", "r", encoding="utf-8"
-) as data_file:
+# OLD_INPUT_PATH = "./data/find_issues_in_text/the_output.json"
+
+with open("./data/finder/findings.json", "r", encoding="utf-8") as data_file:
     data = json.loads(data_file.read())
 
 results = {}
@@ -34,9 +34,9 @@ for issue, finds in data.items():
         }
 
 
-print(f"{len(results.keys())=}")
+print(f"email count = {len(results.keys())}")
 
-with open(
-    "./data/find_issues_in_text/reformatted_output.json", "w", encoding="utf-8"
-) as output_file:
+# OLD_OUTPUT_PATH = "./data/find_issues_in_text/reformatted_output.json"
+
+with open("./data/finder/res_findings.json", "w", encoding="utf-8") as output_file:
     output_file.write(json.dumps(results, indent=4))

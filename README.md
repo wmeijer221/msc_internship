@@ -20,6 +20,7 @@ Here's a summary of the relevant ones, per study that they're used for.
 - ``restructure_found_issues.py`` - takes the result of ``better_find_issues_in_text.py`` and restructures them. This is useful while classifying using the email browser whilst keeping track of what issues are referenced in what emails (some emails reference multiple issues and not all of them are architectural).
 - ``results_figure_prepper.py`` - takes the csv output of the email browser and restructures it to be better usable for the results. Used by the issue-email relationship study.
 - ``generate_query.py`` - generates lucene query that can be used to find all issues in the email dataset. 
+- ``add_issue_type_to_relationship.py`` - adds the relationship type from the work of Faroghi to the .csv file.
 
 ### Both
 - ``test_independence.py`` - performs the chi2 test and the fisher exact test on the provided data and outputs the results. This is used to identify co-occurrence of objects.

@@ -21,7 +21,7 @@ def reformat(data_set: list, interesting_tags: list, output_path: str):
         # Header string
         output_file.write("ID,Subject,")
         for tag in interesting_tags:
-            output_file.write(f"{tag},")
+            output_file.write(f'"{tag}",')
         output_file.write("\n")
         # Content
         for row in data_set:
@@ -39,14 +39,15 @@ DATA_PATH = "./data/data_prepper/the_data.csv"
 OUTPUT_PATH = "./data/data_prepper/the_export.csv"
 INTERESTING_TAGS = [
     "Architecturally Irrelevant",
-    "Issue Elaboration",
     "Release Group",
-    "FQAB Group",
-    "Other Reference",
-    "Description Reference",
-    "Influence of Architectural Issues",
-    "Discussion on Issue",
-    "Information Source",
+    "Feature Group",
+    "Quality Group",
+    "Issue Elaboration",
+    "Discussion Venue",
+    "Issue Impact",
+    "Resource",
+    "Other Issue Reference",
+    "Other",
 ]
 
 ds = load_dataset(DATA_PATH, INTERESTING_TAGS)
