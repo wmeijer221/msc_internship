@@ -285,7 +285,7 @@ RAT_TYPES = [
     "Quality Issue",
     "Solution Benefits and Drawbacks",
     "Solution Evaluation",
-    "Solution Risks and Non-Risks",
+    "Solution Risks",
     "Solution Trade-off",
     "Solution Comparison",
     "Other",

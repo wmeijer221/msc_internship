@@ -20,6 +20,7 @@ def load_issues(issue_file_path: str) -> list:
             issues.append(f'{prefix}-{issue.split("-")[1]}')
     return issues
 
+
 def find_issues_in(iss: list, file_path: str) -> dict:
     """Finds issues in text"""
     results = {}
@@ -76,7 +77,7 @@ def find(issue_file_path: str, input_paths: list, output_path: str):
     issues = load_issues(issue_file_path)
     all_findings = {}
     for in_path in input_paths:
-        print(f'Starting {in_path}')
+        print(f"Starting {in_path}")
         findings, count = find_issues_in(issues, in_path)
         print(f"Finished. reference count: {count}")
         if all_findings is None:
@@ -95,20 +96,27 @@ def find(issue_file_path: str, input_paths: list, output_path: str):
 
 ISSUE_FILE_PATH = "./data/IssuesDatasetArchitectural.xlsx"
 
-# Revised
+# Final
 find(
     ISSUE_FILE_PATH,
-    [
-        "./data/finder/issues-1.txt",
-        "./data/finder/issues-2.txt",
-        "./data/finder/issues-3.txt",
-        "./data/finder/issues-4.txt",
-        "./data/finder/issues-5.txt",
-        "./data/finder/issues-6.txt",
-        "./data/finder/issues-7.txt",
-    ],
-    "./data/finder/findings.json",
+    ["./data/the_best_exported_data/the_data.txt"],
+    "./data/the_best_exported_data/findings.json",
 )
+
+# Revised
+# find(
+#     ISSUE_FILE_PATH,
+#     [
+#         "./data/finder/issues-1.txt",
+#         "./data/finder/issues-2.txt",
+#         "./data/finder/issues-3.txt",
+#         "./data/finder/issues-4.txt",
+#         "./data/finder/issues-5.txt",
+#         "./data/finder/issues-6.txt",
+#         "./data/finder/issues-7.txt",
+#     ],
+#     "./data/finder/findings.json",
+# )
 
 
 # Original
